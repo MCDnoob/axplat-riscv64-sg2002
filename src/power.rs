@@ -17,7 +17,7 @@ impl PowerIf for PowerImpl {
             warn!("HSM SBI extension is not supported for current SEE.");
             return;
         }
-        let entry = virt_to_phys(va!(crate::boot::_start_secondary as usize));
+        let entry = virt_to_phys(va!(crate::boot::_start_secondary as *const () as usize));
         sbi_rt::hart_start(cpu_id + 1, entry.as_usize(), stack_top_paddr);
     }
 
