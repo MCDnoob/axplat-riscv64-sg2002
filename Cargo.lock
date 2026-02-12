@@ -120,9 +120,9 @@ dependencies = [
 
 [[package]]
 name = "axplat"
-version = "0.3.1-pre.1"
+version = "0.3.1-pre.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31df7b8c3331809075cb9997984768d3e1b636d31dfaf5ff74d813d0aa7a6ecb"
+checksum = "db118726e9df52c3636fd34c474e92a3a8c6a2f685724d8e8f924917ba0acb26"
 dependencies = [
  "axplat-macros",
  "bitflags 2.9.4",
@@ -147,7 +147,7 @@ dependencies = [
 
 [[package]]
 name = "axplat-riscv64-visionfive2"
-version = "0.1.0-pre.1"
+version = "0.1.0-pre.2"
 dependencies = [
  "axconfig-macros",
  "axcpu",

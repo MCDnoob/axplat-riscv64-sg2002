@@ -30,4 +30,8 @@ impl PowerIf for PowerImpl {
             axcpu::asm::halt();
         }
     }
+
+    fn cpu_num() -> usize {
+        crate::config::plat::MAX_CPU_NUM
+    }
 }
