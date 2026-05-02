@@ -9,15 +9,19 @@ static mut BOOT_PT_SV39: Aligned4K<[u64; 512]> = Aligned4K::new([0; 512]);
 
 #[allow(clippy::identity_op)] // (0x0 << 10) here makes sense because it's an address
 unsafe fn init_boot_page_table() {
+    const DEVICE_FLAGS: u64 = 0b10011 << 59;
+    const KERNEL_FLAGS: u64 = 0b01111 << 59;
     unsafe {
         // 0x0000_0000..0x4000_0000, VRWX_GAD, 1G block
-        BOOT_PT_SV39[0] = (0x0 << 10) | 0xef;
-        // 0x4000_0000..0x8000_0000, VRWX_GAD, 1G block
-        BOOT_PT_SV39[1] = (0x40000 << 10) | 0xef;
+        BOOT_PT_SV39[0] = (0x0 << 10) | 0xef | DEVICE_FLAGS;
+        BOOT_PT_SV39[1] = (0x40000 << 10) | 0xef | DEVICE_FLAGS;
+        // 0x8000_0000..0xc000_0000, VRWX_GAD, 1G block
+        BOOT_PT_SV39[2] = (0x80000 << 10) | 0xef | KERNEL_FLAGS;
         // 0xffff_ffc0_0000_0000..0xffff_ffc0_4000_0000, VRWX_GAD, 1G block
-        BOOT_PT_SV39[0x100] = (0x0 << 10) | 0xef;
-        // 0xffff_ffc0_4000_0000..0xffff_ffc0_4000_0000, VRWX_GAD, 1G block
-        BOOT_PT_SV39[0x101] = (0x40000 << 10) | 0xef;
+        BOOT_PT_SV39[0x100] = (0x0 << 10) | 0xef | DEVICE_FLAGS;
+        BOOT_PT_SV39[0x101] = (0x40000 << 10) | 0xef | DEVICE_FLAGS;
+        // 0xffff_ffc0_8000_0000..0xffff_ffc0_c000_0000, VRWX_GAD, 1G block
+        BOOT_PT_SV39[0x102] = (0x80000 << 10) | 0xef | KERNEL_FLAGS;
     }
 }
 
