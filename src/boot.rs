@@ -32,6 +32,7 @@ unsafe fn init_mmu() {
     }
 }
 
+
 /// The earliest entry point for the primary CPU.
 #[unsafe(naked)]
 #[unsafe(no_mangle)]
