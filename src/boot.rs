@@ -9,19 +9,21 @@ static mut BOOT_PT_SV39: Aligned4K<[u64; 512]> = Aligned4K::new([0; 512]);
 
 #[allow(clippy::identity_op)] // (0x0 << 10) here makes sense because it's an address
 unsafe fn init_boot_page_table() {
-    const DEVICE_FLAGS: u64 = 0b10011 << 59;
-    const KERNEL_FLAGS: u64 = 0b01111 << 59;
+    // bit[62] CACHE,bit[61] BUF，bit[60] SHARE PAGE_KERNEL
+    // bit[63] SO，bit[60] SHARE PAGE_IOREMAP
     unsafe {
         // 0x0000_0000..0x4000_0000, VRWX_GAD, 1G block
-        BOOT_PT_SV39[0] = (0x0 << 10) | 0xef | DEVICE_FLAGS;
-        BOOT_PT_SV39[1] = (0x40000 << 10) | 0xef | DEVICE_FLAGS;
-        // 0x8000_0000..0xc000_0000, VRWX_GAD, 1G block
-        BOOT_PT_SV39[2] = (0x80000 << 10) | 0xef | KERNEL_FLAGS;
+        BOOT_PT_SV39[0] = (0x0 << 10) | 0xef | (1 << 63) | (1 << 60);
+        // 0x4000_0000..0x8000_0000, VRWX_GAD, 1G block
+        BOOT_PT_SV39[1] = (0x40000 << 10) | 0xef | (1 << 63) | (1 << 60);
+        // 0x8000_0000..0xC000_0000, VRWX_GAD, 1G block
+        BOOT_PT_SV39[2] = (0x80000 << 10) | 0xef | (0x7 << 60);
         // 0xffff_ffc0_0000_0000..0xffff_ffc0_4000_0000, VRWX_GAD, 1G block
-        BOOT_PT_SV39[0x100] = (0x0 << 10) | 0xef | DEVICE_FLAGS;
-        BOOT_PT_SV39[0x101] = (0x40000 << 10) | 0xef | DEVICE_FLAGS;
-        // 0xffff_ffc0_8000_0000..0xffff_ffc0_c000_0000, VRWX_GAD, 1G block
-        BOOT_PT_SV39[0x102] = (0x80000 << 10) | 0xef | KERNEL_FLAGS;
+        BOOT_PT_SV39[0x100] = (0x0 << 10) | 0xef | (1 << 63) | (1 << 60);
+        // 0xffff_ffc0_4000_0000..0xffff_ffc0_8000_0000, VRWX_GAD, 1G block
+        BOOT_PT_SV39[0x101] = (0x40000 << 10) | 0xef | (1 << 63) | (1 << 60);
+        // 0xffff_ffc0_8000_0000..0xffff_ffc0_C000_0000, VRWX_GAD, 1G block
+        BOOT_PT_SV39[0x102] = (0x80000 << 10) | 0xef | (0x7 << 60);
     }
 }
 
@@ -32,6 +34,30 @@ unsafe fn init_mmu() {
     }
 }
 
+
+#[unsafe(naked)]
+unsafe extern "C" fn early_tests() {
+    core::arch::naked_asm!(
+        // UART base address
+        "li t0, 0x4140000",
+
+        // 输出 'Boot\r\n'
+        "li t1, 'B'",
+        "sb t1, 0(t0)",
+        "li t1, 'o'",
+        "sb t1, 0(t0)",
+        "li t1, 'o'",
+        "sb t1, 0(t0)",
+        "li t1, 't'",
+        "sb t1, 0(t0)",
+        "li t1, 0x0d",   // '\r'
+        "sb t1, 0(t0)",
+        "li t1, 0x0a",   // '\n'
+        "sb t1, 0(t0)",
+
+        "ret",
+    );
+}
 
 /// The earliest entry point for the primary CPU.
 #[unsafe(naked)]
@@ -49,7 +75,10 @@ unsafe extern "C" fn _start() -> ! {
         add     sp, sp, t0              // setup boot stack
 
         call    {init_boot_page_table}
-        call    {init_mmu}              // setup boot page table and enabel MMU
+
+        call    {early_tests}            // early UART test
+        call    {init_mmu}               // setup boot page table and enable MMU
+        call    {early_tests}            // early UART test after MMU
 
         li      s2, {phys_virt_offset}  // fix up virtual high address
         add     sp, sp, s2
@@ -67,6 +96,7 @@ unsafe extern "C" fn _start() -> ! {
         init_boot_page_table = sym init_boot_page_table,
         init_mmu = sym init_mmu,
         entry = sym axplat::call_main,
+        early_tests = sym early_tests,
     )
 }
 
